@@ -113,4 +113,121 @@ curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/lat
 sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
 rm argocd-linux-amd64
 ```
-Para instalar no windows, vamos usar o PowerShell
+Para instalar no windows, vamos usar o Invoke-WebRequest no Power shell.
+
+Invoke-WebRequest é um cmdlet nativo do PowerShell para fazer requisições HTTP/HTTPS, similar ao curl no Linux/Mac.
+
+Primeiro vamos pegar a versão mais recente do argocd e armazenar na variável ```$version```.
+```powershell
+$version = (Invoke-RestMethod https://api.github.com/repos/argoproj/argo-cd/releases/latest).tag_name
+```
+* ``` Invoke-RestMethod ```
+   * Faz uma requisição à API do GitHub
+
+   * Consulta o endpoint de latest release do ArgoCD
+
+   * Retorna automaticamente como objeto (não como texto puro)
+
+* ``` https://api.github.com/repos/argoproj/argo-cd/releases/latest ```
+   * Endpoint oficial da API do GitHub
+
+   * Retorna informações da última versão estável do ArgoCD
+
+* ``` .tag_name ```
+   * Acessa a propriedade que contém o número da versão. (Exemplo: "v2.8.4", "v2.9.0")
+
+* ```$version =```
+   * Armazena o resultado na variável $version para uso posterior
+ 
+Substitua ``` $version ``` no comando abaixo pela versão do Argo CD que você deseja baixar:
+
+```powershell
+$url = "https://github.com/argoproj/argo-cd/releases/download/" + $version + "/argocd-windows-amd64.exe"
+$output = "argocd.exe"
+
+Invoke-WebRequest -Uri $url -OutFile $outputkubectl 
+```
+Agora precisamos mover o arquivo para o seu PATH.
+
+```powersheell
+[Environment]::SetEnvironmentVariable("Path", "$env:Path;C:\Path\To\ArgoCD-CLI", "User")
+```
+Depois de concluir as instruções acima, você agora poderá executar ``` argocd ``` comandos, para fazer um teste rode o comando:
+
+```powershell
+argocd version
+```
+Vai retornar algo parecido com isso.
+
+```powershell
+argocd: v3.1.9+8665140
+  BuildDate: 2025-10-17T22:07:41Z
+  GitCommit: 8665140f96f6b238a20e578dba7f9aef91ddac51
+  GitTreeState: clean
+  GoVersion: go1.24.6
+  Compiler: gc
+  Platform: windows/amd64
+```
+
+# Etapa 3 Acessar o ArgoCD localmente
+## 3.1 Port Forwarding
+Para acessar o argocd precisamos fazer um port forwarding do Kubernetes que cria uma conexão segura e temporária entre uma máquina local e um recurso específico (normalmente um Pod ou Service) dentro de um cluster Kubernetes. Isso permite acesso local a aplicações ou serviços executando dentro do cluster como se estivessem rodando localmente, sem expô-los externamente. É utilizado principalmente para desenvolvimento, depuração e testes.
+
+```powershell
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+```
+* recomendo usar outro terminal para rodar esse comando, pois ele vai ficar rodando a aplicação.
+
+Para acessar o argocd coloque o endereço ``` https://localhost:8080 ``` no seu navegador 
+
+<img width="1790" height="636" alt="Captura de tela 2025-10-26 152553" src="https://github.com/user-attachments/assets/d969042f-08c6-487f-ad88-12f4993dc519" />
+
+## 3.2 Fazendo login no argocd
+Precisamos fazer login no argocd, o usuário padrão dele é ``` admin ``` e a senha temos que descobrir usando o comando:
+
+**Para linux**
+```bash
+kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d
+```
+
+**Como o windows não reconhece base64, temos que decodificar usando:**
+
+```powershell
+kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | %{ [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($_)) }
+```
+* Decodificação do base64
+  * % → Alias para ForEach-Object
+
+  * [System.Convert]::FromBase64String($_) → Converte base64 para bytes
+
+  * [System.Text.Encoding]::UTF8.GetString() → Converte bytes para texto legível
+ 
+Descobrindo a senha podemos fazer o acesso no argocd com o comando:
+
+```powershell
+argocd login localhost:8080
+```
+Ele vai pedir o nome de usuário e depois a senha que descobrimos anteriormente, Depois ele estabelece a conexão.
+
+``` powershell
+'admin:login' logged in successfully
+Context 'localhost:8080' updated
+```
+Podemos entrar pelo interface gráfica, colocando o nome de usuário e a senha.
+
+<img width="1894" height="546" alt="Captura de tela 2025-10-26 153457" src="https://github.com/user-attachments/assets/8ef13e56-c83a-4cd2-8bf3-7803d57e5ccb" />
+
+# Etapa 4 Criando a Aplicação no ArgoCD.
+Agora que o cluster Kubernetes está integrado ao ArgoCD, o próximo passo é criar a aplicação. Para isso, precisamos conectar um repositório Git contendo os manifestos Kubernetes da nossa aplicação. O ArgoCD monitorará continuamente este repositório e automaticamente implantará e sincronizará as alterações no cluster sempre que detectar atualizações no código-fonte.
+
+Para criarmos a aplicação usamos o comando:
+
+```powershell
+
+```
+
+
+
+
+
+
