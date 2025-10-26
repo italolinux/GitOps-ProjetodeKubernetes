@@ -3,40 +3,40 @@ Este projeto demonstra a prática de GitOps implementando o deploy da aplicaçã
 
 ## 📋 Funcionalidades
 
-* Deploy automatizado de microserviços usando GitOps
+* Deploy automatizado de microserviços usando GitOps.
 
-* Gerenciamento de infraestrutura como código (IaC)
+* Gerenciamento de infraestrutura como código (IaC).
 
-* Sincronização automática entre repositório Git e cluster Kubernetes
+* Sincronização automática entre repositório Git e cluster Kubernetes.
 
-* Interface web do ArgoCD para monitoramento e controle
+* Interface web do ArgoCD para monitoramento e controle.
 
-* Aplicação Online Boutique funcionando com frontend acessível via port-forward
+* Aplicação Online Boutique funcionando com frontend acessível via port-forward.
 
 ## 🛠️ Tecnologias Utilizadas
 
-* Kubernetes (via Rancher Desktop)
+* Kubernetes (via Rancher Desktop).
 
-* ArgoCD - GitOps continuous delivery tool
+* ArgoCD - GitOps continuous delivery tool.
 
-* Docker - Containerização
+* Docker - Containerização.
 
-* GitHub - Versionamento e fonte de verdade
+* GitHub - Versionamento e fonte de verdade.
 
-* Kubectl - CLI para Kubernetes
+* Kubectl - CLI para Kubernetes.
 
 ## ⚙️ Pré-requisitos
-* Rancher Desktop com Kubernetes habilitado
+* Rancher Desktop com Kubernetes habilitado.
 
-* Kubectl configurado
+* Kubectl configurado.
 
-* ArgoCD instalado no cluster
+* ArgoCD instalado no cluster.
 
-* Conta no GitHub
+* Conta no GitHub.
 
-* Git instalado
+* Git instalado.
 
-* Docker funcionando localmente
+* Docker funcionando localmente.
 
 Para a instalação do Rancher Desktop no Windows, necessita do WSL2.
 
@@ -84,7 +84,7 @@ Agora vamos instalar o ArgoCD como um operador no Kubernetes:
 ``` powershell
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 ```
-Este comando baixa e aplica todos os manifestos necessários para ter o ArgoCD funcionando como controlador GitOps no seu cluster
+Este comando baixa e aplica todos os manifestos necessários para ter o ArgoCD funcionando como controlador GitOps no seu cluster.
 
 Vamos ver se os pods do ArgoCD foram criados com sucesso:
 
@@ -122,16 +122,16 @@ Primeiro vamos pegar a versão mais recente do argocd e armazenar na variável `
 $version = (Invoke-RestMethod https://api.github.com/repos/argoproj/argo-cd/releases/latest).tag_name
 ```
 * ``` Invoke-RestMethod ```
-   * Faz uma requisição à API do GitHub
+   * Faz uma requisição à API do GitHub.
 
-   * Consulta o endpoint de latest release do ArgoCD
+   * Consulta o endpoint de latest release do ArgoCD.
 
-   * Retorna automaticamente como objeto (não como texto puro)
+   * Retorna automaticamente como objeto (não como texto puro).
 
 * ``` https://api.github.com/repos/argoproj/argo-cd/releases/latest ```
-   * Endpoint oficial da API do GitHub
+   * Endpoint oficial da API do GitHub.
 
-   * Retorna informações da última versão estável do ArgoCD
+   * Retorna informações da última versão estável do ArgoCD.
 
 * ``` .tag_name ```
    * Acessa a propriedade que contém o número da versão. (Exemplo: "v2.8.4", "v2.9.0")
@@ -223,11 +223,123 @@ Agora que o cluster Kubernetes está integrado ao ArgoCD, o próximo passo é cr
 Para criarmos a aplicação usamos o comando:
 
 ```powershell
+argocd app create online-boutique `
+   --repo https://github.com/italolinux/GitOps-ProjetodeKubernetes.git `
+   --path k8s `
+   --dest-server https://kubernetes.default.svc `
+   --dest-namespace default
+```
+**OBS:** Para o linux é o mesmo comando só trocar ``` ` ``` por ``` \ ```.
 
+| Parâmetro          | Significado                                       |
+| ------------------ | ------------------------------------------------- |
+| `--repo`           | Link do repositório Git (com `.git`)              |
+| `--path`           | Caminho dentro do repositório onde estão os YAMLs |
+| `--dest-server`    | Cluster onde a app será implantada                |
+| `--dest-namespace` | Namespace dentro do cluster                       |
+
+Vamos verificar se a nossa aplicação foi criada.
+```powershell
+argocd app list
+```
+Retorna:
+
+```powershell
+NAME                    CLUSTER                         NAMESPACE  PROJECT  STATUS     HEALTH   SYNCPOLICY  CONDITIONS  REPO                                                          PATH  TARGET
+argocd/online-boutique  https://kubernetes.default.svc  default    default  OutOfSync  Missing  Manual      <none>      https://github.com/italolinux/GitOps-ProjetodeKubernetes.git  k8s
+```
+Como podemos observar o status da nossa aplicação está ``` **OutOfSync** ``` e a health está ``` **Missing** ```, precisamos fazer o sync da aplicação com o argocd.
+
+```powershell
+argocd app sync online-boutique
+```
+* O que acontece durante o ``` sync ```:
+    
+    *  Conecta ao repositório Git e busca os manifests mais recentes.
+
+    * Compara o estado atual do cluster com o estado desejado no Git.
+
+    * Aplica as diferenças no cluster Kubernetes.
+
+    * Cria/atualiza todos os recursos definidos no online-boutique.yaml.
+      
+# Etapa 5 Acessar o Front-end da aplicação
+Igual para acessar o argocd tivemos que fazer um port forwarding, faremos para o online-boutique.
+Para isso vamos ver os serviços da aplicação.
+
+```powershell
+kubectl get svc
 ```
 
+Vai retornar.
 
+```powershell
+NAME                    TYPE           CLUSTER-IP      EXTERNAL-IP     PORT(S)        AGE
+adservice               ClusterIP      10.43.211.236   <none>          9555/TCP       6m13s
+cartservice             ClusterIP      10.43.34.72     <none>          7070/TCP       6m13s
+checkoutservice         ClusterIP      10.43.215.186   <none>          5050/TCP       6m13s
+currencyservice         ClusterIP      10.43.160.249   <none>          7000/TCP       6m13s
+emailservice            ClusterIP      10.43.75.157    <none>          5000/TCP       6m13s
+frontend                ClusterIP      10.43.255.5     <none>          80/TCP         6m13s
+frontend-external       LoadBalancer   10.43.60.228    192.168.127.2   80:31850/TCP   6m13s
+kubernetes              ClusterIP      10.43.0.1       <none>          443/TCP        47h
+paymentservice          ClusterIP      10.43.33.93     <none>          50051/TCP      6m13s
+productcatalogservice   ClusterIP      10.43.12.72     <none>          3550/TCP       6m13s
+recommendationservice   ClusterIP      10.43.208.3     <none>          8080/TCP       6m13s
+redis-cart              ClusterIP      10.43.116.21    <none>          6379/TCP       6m13s
+shippingservice         ClusterIP      10.43.196.210   <none>          50051/TCP      6m13s
+```
+Precisamos dar o port forward no ``` LoadBalancer ``` com o nome de ``` frontend-external. ```
 
+```powershell
+kubectl port-forward svc/frontend-external 80:80
+```
+Agora é só acessar no navegador o endereço ``` http://localhost ```.
 
+<img width="1890" height="899" alt="Captura de tela 2025-10-26 162957" src="https://github.com/user-attachments/assets/94408451-9e95-4534-8737-1d2aca72c0ba" />
 
+# Etapa 6 Desafio extra Criando a aplicação com um repositório privado.
+Para criar nossa aplicação usando um repositório privado, vou usar o método com HTTPS + token do GitHub.
+## 6.1 Crie um token de acesso pessoal no GitHub
 
+* Acesse: https://github.com/settings/tokens
+
+* Clique em Generate new token → Fine-grained token
+
+* Dê permissão de Read access to contents
+
+* Copie o token (exemplo: ghp_xxxxxxx)
+
+## 6.2 Adicione o repositório ao ArgoCD
+
+Rode este comando :
+
+```powershell
+argocd repo add https://github.com/italolinux/meu-repo.git `
+  --username italolinux `
+  --password ghp_xxxxxxx `
+  --insecure
+```
+* Substitua ``` meu-repo.git ``` pelo nome real do seu repositório.
+
+* No ``` --username ``` coloque seu nome de usuário do github.
+
+* Substitua ``` ghp_xxxxxxx ``` pelo token real.
+
+* A flag ``` --insecure ``` evita problemas de certificado no ambiente local.
+
+Para verificar .
+
+```powershell
+
+argocd repo list
+```
+Retorna.
+
+```powershell
+TYPE  NAME  REPO                                                          INSECURE  OCI    LFS    CREDS  STATUS      MESSAGE  PROJECT
+git         https://github.com/italolinux/GitOps-ProjetodeKubernetes.git  false     false  false  false  Successful
+```
+Como podemos ver os status está ``` Successful ``` comprovando a conexão.
+
+Agora é só seguir as etapas [4](# Etapa 4 Criando a Aplicação no ArgoCD.) e [5](# Etapa 5 Acessar o Front-end da aplicação) de criação e acesso a aplicação. 
