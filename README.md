@@ -342,4 +342,4 @@ git         https://github.com/italolinux/GitOps-ProjetodeKubernetes.git  false 
 ```
 Como podemos ver os status está ``` Successful ``` comprovando a conexão.
 
-Agora é só seguir as etapas [4](# Etapa 4 Criando a Aplicação no ArgoCD.) e [5](# Etapa 5 Acessar o Front-end da aplicação) de criação e acesso a aplicação. 
+Agora é só seguir as etapas [4](#Etapa 4 Criando a Aplicação no ArgoCD.) e [5](#Etapa 5 Acessar o Front-end da aplicação) de criação e acesso a aplicação. 
